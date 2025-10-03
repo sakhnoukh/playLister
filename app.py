@@ -105,7 +105,7 @@ def init_db():
 
 def seed_songs(conn):
     """Seed songs from CSV file."""
-    seed_file = Path("seed/house_seed.csv")
+    seed_file = Path("seed/house_tracks.csv")
     cursor = conn.cursor()
     
     with open(seed_file, 'r', encoding='utf-8') as f:
@@ -134,11 +134,15 @@ def json_response(f):
     """Convert function result to JSON response."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        result = f(*args, **kwargs)
-        if isinstance(result, tuple):
-            response, status_code = result
-            return jsonify(response), status_code
-        return jsonify(result)
+        try:
+            result = f(*args, **kwargs)
+            if isinstance(result, tuple):
+                response, status_code = result
+                return jsonify(response), status_code
+            return jsonify(result)
+        except Exception as e:
+            app.logger.error(f"Error in API endpoint: {str(e)}")
+            return jsonify({"error": str(e)}), 500
     return decorated_function
 
 # API Routes
@@ -152,7 +156,14 @@ def health():
 @json_response
 def create_user():
     """Create a new user or get existing user by name."""
-    name = request.json.get("name")
+    if not request.is_json:
+        return {"error": "Request must be JSON"}, 400
+        
+    data = request.get_json()
+    if data is None:
+        return {"error": "Invalid JSON"}, 400
+        
+    name = data.get("name")
     if not name:
         return {"error": "Name is required"}, 400
     
@@ -213,7 +224,13 @@ def get_songs():
 @json_response
 def start_quiz():
     """Start a quiz by getting N random songs."""
-    data = request.json
+    if not request.is_json:
+        return {"error": "Request must be JSON"}, 400
+        
+    data = request.get_json()
+    if data is None:
+        return {"error": "Invalid JSON"}, 400
+        
     user_id = data.get("user_id")
     n = data.get("n", 10)
     
@@ -260,7 +277,13 @@ def start_quiz():
 @json_response
 def answer_quiz():
     """Record user's like/dislike for a song."""
-    data = request.json
+    if not request.is_json:
+        return {"error": "Request must be JSON"}, 400
+        
+    data = request.get_json()
+    if data is None:
+        return {"error": "Invalid JSON"}, 400
+        
     user_id = data.get("user_id")
     song_id = data.get("song_id")
     liked = data.get("liked")
@@ -373,7 +396,13 @@ def _score_song(song, liked_songs, disliked_songs, seed_song):
 @json_response
 def generate_playlist():
     """Generate a playlist based on user taste."""
-    data = request.json
+    if not request.is_json:
+        return {"error": "Request must be JSON"}, 400
+        
+    data = request.get_json()
+    if data is None:
+        return {"error": "Invalid JSON"}, 400
+        
     user_id = data.get("user_id")
     count = data.get("count", 20)
     genre = data.get("genre")
@@ -468,7 +497,13 @@ def generate_playlist():
 @json_response
 def create_playlist():
     """Save a playlist to user's profile."""
-    data = request.json
+    if not request.is_json:
+        return {"error": "Request must be JSON"}, 400
+        
+    data = request.get_json()
+    if data is None:
+        return {"error": "Invalid JSON"}, 400
+        
     user_id = data.get("user_id")
     name = data.get("name")
     song_ids = data.get("song_ids", [])
@@ -622,6 +657,8 @@ def profile_page():
     """User profile with saved playlists."""
     return render_template("profile.html")
 
+# Debug route removed
+
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, port=8080)
+    app.run(debug=True, host='0.0.0.0', port=5000)

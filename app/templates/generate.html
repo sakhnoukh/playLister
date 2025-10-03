@@ -108,6 +108,12 @@
             const seedSongId = document.getElementById('seed-song').value ? 
                 parseInt(document.getElementById('seed-song').value) : null;
             
+            // Check if user ID exists
+            if (!userId) {
+                window.location.href = '/';
+                return;
+            }
+            
             document.getElementById('loading').classList.remove('hidden');
             document.getElementById('preview-container').classList.add('hidden');
             
@@ -123,7 +129,10 @@
                     })
                 });
                 
-                if (!response.ok) throw new Error('Failed to generate playlist');
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error('Failed to generate playlist');
+                }
                 
                 generatedSongs = await response.json();
                 displayPlaylist();

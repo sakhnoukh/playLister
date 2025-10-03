@@ -1,6 +1,6 @@
 # 🎵 PlayLister - House Music Playlist Generator
 
-A retro-styled music playlist generator focused on house music, built with Flask and featuring a taste quiz system that learns your preferences to create personalized playlists.
+A retro-styled music playlist generator focused on house music, built with Flask and featuring a taste quiz system that learns your preferences to create personalized playlists. The application has a 90s-inspired retro UI design.
 
 ## ✨ Features
 
@@ -35,11 +35,12 @@ playLister/
 │       ├── quiz.html
 │       ├── generate.html
 │       └── profile.html
-├── flask_app.py            # Flask application with all routes
+├── app.py                 # Flask application with all routes
+├── run.sh                 # Startup script
 ├── seed/
-│   └── house_seed.csv       # 50 real house tracks
-├── tests/
-│   └── test_api.py
+│   └── house_tracks.csv       # 97 real house tracks
+├── report/
+│   └── report.md           # Project report
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -52,7 +53,18 @@ playLister/
 - Python 3.10 or higher
 - pip or uv package manager
 
-### Installation
+### Installation & Running
+
+**Method 1: Using the run script**
+
+```bash
+git clone https://github.com/sakhnoukh/playLister.git
+cd playLister
+chmod +x run.sh
+./run.sh
+```
+
+**Method 2: Manual setup**
 
 1. **Clone the repository**
    ```bash
@@ -62,7 +74,7 @@ playLister/
 
 2. **Create and activate virtual environment**
    ```bash
-   python -m venv .venv
+   python3 -m venv .venv
    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
@@ -73,7 +85,7 @@ playLister/
 
 4. **Run the application**
    ```bash
-   python flask_app.py
+   python app.py
    ```
 
 5. **Access the application**
