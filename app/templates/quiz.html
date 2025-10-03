@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayLister - Taste Quiz</title>
+    <link rel="stylesheet" href="/static/retro.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 PLAYLISTER 🎵</h1>
+            <p>Taste Quiz</p>
+        </header>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/generate">Generate</a>
+            <a href="/profile">Profile</a>
+        </nav>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 id="user-greeting">Loading...</h2>
+            </div>
+            
+            <div id="loading" class="loading">
+                <p class="spinner">Loading quiz...</p>
+            </div>
+            
+            <div id="quiz-container" class="quiz-container hidden">
+                <p style="margin-bottom: 20px;">Song <span id="current-num">0</span> of <span id="total-num">10</span></p>
+                
+                <div class="quiz-song">
+                    <h2 id="song-title">Song Title</h2>
+                    <p id="song-artist" style="margin-top: 15px; font-size: 11px;">Artist Name</p>
+                    <p id="song-meta" class="song-meta" style="margin-top: 10px;"></p>
+                </div>
+                
+                <div class="quiz-buttons">
+                    <button class="danger" onclick="answerQuiz(false)">👎 DISLIKE</button>
+                    <button class="secondary" onclick="skipSong()">⏭️ SKIP</button>
+                    <button class="primary" onclick="answerQuiz(true)">👍 LIKE</button>
+                </div>
+            </div>
+            
+            <div id="quiz-complete" class="hidden text-center" style="padding: 40px;">
+                <h2 style="margin-bottom: 30px;">Quiz Complete!</h2>
+                <p style="margin-bottom: 30px;">You've rated <span id="answers-count">0</span> songs.</p>
+                <button class="primary" onclick="window.location.href='/generate'">Generate Playlist</button>
+                <button class="secondary" onclick="restartQuiz()">Take Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userId = null;
+        let quizSongs = [];
+        let currentIndex = 0;
+        let answersCount = 0;
+        
+        async function init() {
+            userId = localStorage.getItem('userId');
+            const userName = localStorage.getItem('userName');
+            
+            if (!userId) {
+                window.location.href = '/';
+                return;
+            }
+            
+            document.getElementById('user-greeting').textContent = `Welcome, ${userName}!`;
+            
+            await loadQuiz();
+        }
+        
+        async function loadQuiz() {
+            try {
+                const response = await fetch('/api/quiz/start', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: parseInt(userId), n: 10 })
+                });
+                
+                if (!response.ok) throw new Error('Failed to load quiz');
+                
+                quizSongs = await response.json();
+                currentIndex = 0;
+                answersCount = 0;
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('quiz-container').classList.remove('hidden');
+                document.getElementById('total-num').textContent = quizSongs.length;
+                
+                showCurrentSong();
+                
+            } catch (error) {
+                alert('Error loading quiz: ' + error.message);
+            }
+        }
+        
+        function showCurrentSong() {
+            if (currentIndex >= quizSongs.length) {
+                completeQuiz();
+                return;
+            }
+            
+            const song = quizSongs[currentIndex];
+            document.getElementById('current-num').textContent = currentIndex + 1;
+            document.getElementById('song-title').textContent = song.title;
+            document.getElementById('song-artist').textContent = song.artist;
+            document.getElementById('song-meta').textContent = 
+                `${song.subgenre} • ${song.year}${song.bpm ? ` • ${song.bpm} BPM` : ''}`;
+        }
+        
+        async function answerQuiz(liked) {
+            const song = quizSongs[currentIndex];
+            
+            try {
+                const response = await fetch('/api/quiz/answer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        song_id: song.id,
+                        liked: liked
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to record answer');
+                
+                answersCount++;
+                currentIndex++;
+                showCurrentSong();
+                
+            } catch (error) {
+                alert('Error recording answer: ' + error.message);
+            }
+        }
+        
+        function skipSong() {
+            currentIndex++;
+            showCurrentSong();
+        }
+        
+        function completeQuiz() {
+            document.getElementById('quiz-container').classList.add('hidden');
+            document.getElementById('quiz-complete').classList.remove('hidden');
+            document.getElementById('answers-count').textContent = answersCount;
+        }
+        
+        function restartQuiz() {
+            document.getElementById('quiz-complete').classList.add('hidden');
+            document.getElementById('loading').classList.remove('hidden');
+            loadQuiz();
+        }
+        
+        // Keyboard shortcuts
+        document.addEventListener('keypress', (e) => {
+            if (document.getElementById('quiz-container').classList.contains('hidden')) return;
+            
+            if (e.key === 'l' || e.key === 'L') answerQuiz(true);
+            if (e.key === 'd' || e.key === 'D') answerQuiz(false);
+            if (e.key === 's' || e.key === 'S') skipSong();
+        });
+        
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

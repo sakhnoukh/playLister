@@ -1,0 +1,325 @@
+/* Retro 90s dot-com era styling */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+:root {
+    --bg-primary: #000080;
+    --bg-secondary: #c0c0c0;
+    --bg-light: #ffffff;
+    --text-primary: #ffffff;
+    --text-secondary: #000000;
+    --accent: #ff00ff;
+    --accent-alt: #00ffff;
+    --border: #808080;
+    --shadow: #404040;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Press Start 2P', cursive, monospace;
+    font-size: 12px;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.8;
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    padding: 20px;
+    border: 4px solid var(--border);
+    border-bottom: 8px solid var(--shadow);
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: var(--accent);
+    text-shadow: 3px 3px 0 var(--shadow);
+}
+
+h2 {
+    font-size: 16px;
+    margin: 20px 0 15px 0;
+    color: var(--accent-alt);
+}
+
+h3 {
+    font-size: 14px;
+    margin: 15px 0 10px 0;
+}
+
+/* Cards */
+.card {
+    background: var(--bg-secondary);
+    border: 4px solid var(--border);
+    border-bottom: 8px solid var(--shadow);
+    border-right: 8px solid var(--shadow);
+    padding: 20px;
+    margin-bottom: 20px;
+    color: var(--text-secondary);
+}
+
+.card-header {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 10px;
+    margin: -20px -20px 15px -20px;
+    border-bottom: 4px solid var(--border);
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 20px;
+}
+
+label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 11px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+    width: 100%;
+    padding: 10px;
+    border: 4px inset var(--border);
+    background: var(--bg-light);
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+select:focus {
+    outline: 2px solid var(--accent);
+}
+
+/* Buttons */
+button,
+.btn {
+    padding: 12px 24px;
+    border: 4px outset var(--border);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin: 5px;
+    transition: all 0.1s;
+}
+
+button:hover,
+.btn:hover {
+    background: var(--bg-light);
+}
+
+button:active,
+.btn:active {
+    border-style: inset;
+    transform: translate(2px, 2px);
+}
+
+button.primary {
+    background: var(--accent);
+    color: var(--text-primary);
+    border-color: var(--accent);
+}
+
+button.secondary {
+    background: var(--accent-alt);
+    color: var(--text-secondary);
+    border-color: var(--accent-alt);
+}
+
+button.danger {
+    background: #ff0000;
+    color: var(--text-primary);
+    border-color: #ff0000;
+}
+
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Navigation */
+nav {
+    background: var(--bg-secondary);
+    padding: 15px;
+    border: 4px solid var(--border);
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+nav a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    margin: 0 15px;
+    padding: 8px 16px;
+    border: 2px solid var(--border);
+    display: inline-block;
+}
+
+nav a:hover {
+    background: var(--accent);
+    color: var(--text-primary);
+}
+
+/* Lists */
+ul {
+    list-style: none;
+}
+
+li {
+    padding: 10px;
+    margin: 8px 0;
+    border: 2px solid var(--border);
+    background: var(--bg-light);
+    color: var(--text-secondary);
+}
+
+/* Song display */
+.song-item {
+    padding: 15px;
+    margin: 10px 0;
+    background: var(--bg-light);
+    border: 3px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.song-info {
+    flex: 1;
+}
+
+.song-title {
+    font-size: 13px;
+    margin-bottom: 8px;
+}
+
+.song-meta {
+    font-size: 9px;
+    color: #666;
+}
+
+.song-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* Quiz styles */
+.quiz-container {
+    text-align: center;
+}
+
+.quiz-song {
+    background: var(--bg-light);
+    padding: 40px 20px;
+    margin: 30px 0;
+    border: 4px solid var(--border);
+}
+
+.quiz-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+/* Playlist preview */
+.playlist-preview {
+    max-height: 400px;
+    overflow-y: auto;
+    border: 3px inset var(--border);
+    padding: 10px;
+    background: var(--bg-light);
+}
+
+/* Loading spinner */
+.loading {
+    text-align: center;
+    padding: 40px;
+    font-size: 14px;
+}
+
+.spinner {
+    display: inline-block;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* Messages */
+.message {
+    padding: 15px;
+    margin: 15px 0;
+    border: 3px solid var(--border);
+}
+
+.message.success {
+    background: #00ff00;
+    color: var(--text-secondary);
+}
+
+.message.error {
+    background: #ff0000;
+    color: var(--text-primary);
+}
+
+.message.info {
+    background: var(--accent-alt);
+    color: var(--text-secondary);
+}
+
+/* Utilities */
+.text-center {
+    text-align: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.mt-1 { margin-top: 10px; }
+.mt-2 { margin-top: 20px; }
+.mb-1 { margin-bottom: 10px; }
+.mb-2 { margin-bottom: 20px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    body {
+        font-size: 10px;
+    }
+    
+    h1 {
+        font-size: 18px;
+    }
+    
+    .quiz-buttons {
+        flex-direction: column;
+    }
+}

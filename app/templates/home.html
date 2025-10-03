@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayLister - Welcome</title>
+    <link rel="stylesheet" href="/static/retro.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 PLAYLISTER 🎵</h1>
+            <p>House Music Playlist Generator</p>
+        </header>
+
+        <div class="card">
+            <div class="card-header">
+                <h2>WELCOME TO THE FUTURE OF MUSIC</h2>
+            </div>
+            
+            <div class="text-center" style="padding: 40px 20px;">
+                <p style="margin-bottom: 30px;">Enter your name to begin your musical journey...</p>
+                
+                <div class="form-group">
+                    <input type="text" id="username" placeholder="Your Name" autocomplete="off">
+                </div>
+                
+                <button class="primary" onclick="startSession()">START</button>
+                
+                <div id="message" class="message hidden"></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h3>How it works:</h3>
+            <ul style="line-height: 2;">
+                <li>👤 Create your profile</li>
+                <li>🎧 Take the taste quiz</li>
+                <li>🎶 Generate personalized playlists</li>
+                <li>💾 Save your favorites</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function startSession() {
+            const username = document.getElementById('username').value.trim();
+            const messageEl = document.getElementById('message');
+            
+            if (!username) {
+                showMessage('Please enter your name!', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name: username })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to create user');
+                }
+                
+                const user = await response.json();
+                localStorage.setItem('userId', user.id);
+                localStorage.setItem('userName', user.name);
+                
+                showMessage(`Welcome, ${user.name}!`, 'success');
+                
+                setTimeout(() => {
+                    window.location.href = '/quiz';
+                }, 1000);
+                
+            } catch (error) {
+                showMessage('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = 'message ' + type;
+            messageEl.classList.remove('hidden');
+        }
+        
+        // Enter key support
+        document.getElementById('username').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') startSession();
+        });
+        
+        // Check if already logged in
+        window.addEventListener('load', () => {
+            const userId = localStorage.getItem('userId');
+            const userName = localStorage.getItem('userName');
+            if (userId && userName) {
+                document.getElementById('username').value = userName;
+            }
+        });
+    </script>
+</body>
+</html>

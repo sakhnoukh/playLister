@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayLister - Generate Playlist</title>
+    <link rel="stylesheet" href="/static/retro.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 PLAYLISTER 🎵</h1>
+            <p>Generate Playlist</p>
+        </header>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/generate">Generate</a>
+            <a href="/profile">Profile</a>
+        </nav>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 id="user-greeting">Generate Your Playlist</h2>
+            </div>
+            
+            <form id="generate-form" onsubmit="generatePlaylist(event)">
+                <div class="form-group">
+                    <label for="count">Number of songs (5-100):</label>
+                    <input type="number" id="count" min="5" max="100" value="20" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="subgenre">Subgenre (optional):</label>
+                    <select id="subgenre">
+                        <option value="">All Subgenres</option>
+                        <option value="house">House</option>
+                        <option value="deep-house">Deep House</option>
+                        <option value="tech-house">Tech House</option>
+                        <option value="french-house">French House</option>
+                        <option value="chicago-house">Chicago House</option>
+                        <option value="disco-house">Disco House</option>
+                        <option value="progressive-house">Progressive House</option>
+                        <option value="electro-house">Electro House</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="seed-song">Seed song ID (optional):</label>
+                    <input type="number" id="seed-song" placeholder="Leave empty or enter song ID">
+                </div>
+                
+                <button type="submit" class="primary">Generate Playlist</button>
+            </form>
+        </div>
+
+        <div id="loading" class="loading hidden">
+            <p class="spinner">Generating your perfect playlist...</p>
+        </div>
+
+        <div id="preview-container" class="card hidden">
+            <div class="card-header">
+                <h2>Playlist Preview</h2>
+            </div>
+            
+            <div class="playlist-preview" id="playlist-songs">
+                <!-- Songs will be inserted here -->
+            </div>
+            
+            <div class="text-center mt-2">
+                <input type="text" id="playlist-name" placeholder="Playlist name" style="max-width: 400px;">
+                <br><br>
+                <button class="primary" onclick="savePlaylist()">💾 Save Playlist</button>
+                <button class="secondary" onclick="regenerate()">🔄 Generate Again</button>
+            </div>
+        </div>
+
+        <div id="success-message" class="message success hidden"></div>
+    </div>
+
+    <script>
+        let userId = null;
+        let generatedSongs = [];
+        
+        function init() {
+            userId = localStorage.getItem('userId');
+            const userName = localStorage.getItem('userName');
+            
+            if (!userId) {
+                window.location.href = '/';
+                return;
+            }
+            
+            document.getElementById('user-greeting').textContent = `${userName}'s Playlist Generator`;
+            
+            // Set default playlist name
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            document.getElementById('playlist-name').value = `${userName} - ${dateStr}`;
+        }
+        
+        async function generatePlaylist(event) {
+            event.preventDefault();
+            
+            const count = parseInt(document.getElementById('count').value);
+            const subgenre = document.getElementById('subgenre').value || null;
+            const seedSongId = document.getElementById('seed-song').value ? 
+                parseInt(document.getElementById('seed-song').value) : null;
+            
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('preview-container').classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/playlists/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        count: count,
+                        genre: subgenre,
+                        seed_song_id: seedSongId
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to generate playlist');
+                
+                generatedSongs = await response.json();
+                displayPlaylist();
+                
+            } catch (error) {
+                alert('Error generating playlist: ' + error.message);
+            } finally {
+                document.getElementById('loading').classList.add('hidden');
+            }
+        }
+        
+        function displayPlaylist() {
+            const container = document.getElementById('playlist-songs');
+            container.innerHTML = '';
+            
+            generatedSongs.forEach((song, index) => {
+                const songEl = document.createElement('div');
+                songEl.className = 'song-item';
+                songEl.innerHTML = `
+                    <div class="song-info">
+                        <div class="song-title">${index + 1}. ${song.title}</div>
+                        <div class="song-meta">${song.artist} • ${song.subgenre} • ${song.year}${song.bpm ? ` • ${song.bpm} BPM` : ''}</div>
+                    </div>
+                `;
+                container.appendChild(songEl);
+            });
+            
+            document.getElementById('preview-container').classList.remove('hidden');
+        }
+        
+        async function savePlaylist() {
+            const name = document.getElementById('playlist-name').value.trim();
+            
+            if (!name) {
+                alert('Please enter a playlist name');
+                return;
+            }
+            
+            if (generatedSongs.length === 0) {
+                alert('No songs to save');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/playlists', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        name: name,
+                        song_ids: generatedSongs.map(s => s.id)
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to save playlist');
+                
+                const result = await response.json();
+                
+                const msgEl = document.getElementById('success-message');
+                msgEl.textContent = `✅ Playlist saved successfully! (ID: ${result.playlist_id})`;
+                msgEl.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    window.location.href = '/profile';
+                }, 2000);
+                
+            } catch (error) {
+                alert('Error saving playlist: ' + error.message);
+            }
+        }
+        
+        function regenerate() {
+            document.getElementById('preview-container').classList.add('hidden');
+        }
+        
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

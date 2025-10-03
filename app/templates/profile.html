@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlayLister - Profile</title>
+    <link rel="stylesheet" href="/static/retro.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎵 PLAYLISTER 🎵</h1>
+            <p>Your Profile</p>
+        </header>
+
+        <nav>
+            <a href="/">Home</a>
+            <a href="/quiz">Quiz</a>
+            <a href="/generate">Generate</a>
+            <a href="/profile">Profile</a>
+        </nav>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 id="user-greeting">Your Playlists</h2>
+            </div>
+            
+            <div id="loading" class="loading">
+                <p class="spinner">Loading playlists...</p>
+            </div>
+            
+            <div id="playlists-container" class="hidden">
+                <div id="playlists-list"></div>
+                
+                <div id="no-playlists" class="hidden text-center" style="padding: 40px;">
+                    <p style="margin-bottom: 20px;">You haven't created any playlists yet.</p>
+                    <button class="primary" onclick="window.location.href='/generate'">Create One Now</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="playlist-detail" class="card hidden">
+            <div class="card-header">
+                <h2 id="detail-title">Playlist Details</h2>
+            </div>
+            
+            <div id="detail-songs" class="playlist-preview"></div>
+            
+            <div class="text-center mt-2">
+                <button class="secondary" onclick="closeDetail()">Close</button>
+                <button class="danger" onclick="deleteCurrentPlaylist()">Delete Playlist</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let userId = null;
+        let playlists = [];
+        let currentPlaylistId = null;
+        
+        async function init() {
+            userId = localStorage.getItem('userId');
+            const userName = localStorage.getItem('userName');
+            
+            if (!userId) {
+                window.location.href = '/';
+                return;
+            }
+            
+            document.getElementById('user-greeting').textContent = `${userName}'s Playlists`;
+            
+            await loadPlaylists();
+        }
+        
+        async function loadPlaylists() {
+            try {
+                const response = await fetch(`/api/playlists?user_id=${userId}`);
+                
+                if (!response.ok) throw new Error('Failed to load playlists');
+                
+                playlists = await response.json();
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('playlists-container').classList.remove('hidden');
+                
+                if (playlists.length === 0) {
+                    document.getElementById('no-playlists').classList.remove('hidden');
+                } else {
+                    displayPlaylists();
+                }
+                
+            } catch (error) {
+                alert('Error loading playlists: ' + error.message);
+            }
+        }
+        
+        function displayPlaylists() {
+            const container = document.getElementById('playlists-list');
+            container.innerHTML = '';
+            
+            playlists.forEach(playlist => {
+                const playlistEl = document.createElement('div');
+                playlistEl.className = 'song-item';
+                
+                const dateStr = new Date(playlist.created_at).toLocaleDateString();
+                
+                playlistEl.innerHTML = `
+                    <div class="song-info">
+                        <div class="song-title">📀 ${playlist.name}</div>
+                        <div class="song-meta">${playlist.song_count} songs • Created ${dateStr}</div>
+                    </div>
+                    <div class="song-actions">
+                        <button class="secondary" onclick="viewPlaylist(${playlist.id})">View</button>
+                        <button class="danger" onclick="confirmDelete(${playlist.id})">Delete</button>
+                    </div>
+                `;
+                
+                container.appendChild(playlistEl);
+            });
+        }
+        
+        async function viewPlaylist(playlistId) {
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}`);
+                
+                if (!response.ok) throw new Error('Failed to load playlist details');
+                
+                const playlist = await response.json();
+                currentPlaylistId = playlistId;
+                
+                document.getElementById('detail-title').textContent = playlist.name;
+                
+                const container = document.getElementById('detail-songs');
+                container.innerHTML = '';
+                
+                playlist.songs.forEach(item => {
+                    const song = item.song;
+                    const songEl = document.createElement('div');
+                    songEl.className = 'song-item';
+                    songEl.innerHTML = `
+                        <div class="song-info">
+                            <div class="song-title">${item.position}. ${song.title}</div>
+                            <div class="song-meta">${song.artist} • ${song.subgenre} • ${song.year}${song.bpm ? ` • ${song.bpm} BPM` : ''}</div>
+                        </div>
+                    `;
+                    container.appendChild(songEl);
+                });
+                
+                document.getElementById('playlist-detail').classList.remove('hidden');
+                
+            } catch (error) {
+                alert('Error loading playlist: ' + error.message);
+            }
+        }
+        
+        function closeDetail() {
+            document.getElementById('playlist-detail').classList.add('hidden');
+            currentPlaylistId = null;
+        }
+        
+        function confirmDelete(playlistId) {
+            const playlist = playlists.find(p => p.id === playlistId);
+            if (confirm(`Are you sure you want to delete "${playlist.name}"?`)) {
+                deletePlaylist(playlistId);
+            }
+        }
+        
+        async function deletePlaylist(playlistId) {
+            try {
+                const response = await fetch(`/api/playlists/${playlistId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!response.ok) throw new Error('Failed to delete playlist');
+                
+                // Reload playlists
+                closeDetail();
+                document.getElementById('loading').classList.remove('hidden');
+                document.getElementById('playlists-container').classList.add('hidden');
+                await loadPlaylists();
+                
+            } catch (error) {
+                alert('Error deleting playlist: ' + error.message);
+            }
+        }
+        
+        function deleteCurrentPlaylist() {
+            if (currentPlaylistId) {
+                confirmDelete(currentPlaylistId);
+            }
+        }
+        
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
