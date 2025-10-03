@@ -1,6 +1,6 @@
 # 🎵 PlayLister - House Music Playlist Generator
 
-A retro-styled music playlist generator focused on house music, built with FastAPI and featuring a taste quiz system that learns your preferences to create personalized playlists.
+A retro-styled music playlist generator focused on house music, built with Flask and featuring a taste quiz system that learns your preferences to create personalized playlists.
 
 ## ✨ Features
 
@@ -17,10 +17,10 @@ A retro-styled music playlist generator focused on house music, built with FastA
 
 ## 🛠 Tech Stack
 
-- **Backend**: FastAPI (Python) with async support
-- **Database**: SQLite with SQLModel ORM
+- **Backend**: Flask (Python)
+- **Database**: SQLite with native Python connections
 - **Frontend**: Vanilla HTML/CSS/JavaScript with retro styling
-- **Server**: Uvicorn ASGI server
+- **Server**: Flask development server
 - **Testing**: Pytest
 
 ## 📦 Project Structure
@@ -28,17 +28,6 @@ A retro-styled music playlist generator focused on house music, built with FastA
 ```
 playLister/
 ├── app/
-│   ├── main.py              # FastAPI application entry point
-│   ├── models.py            # SQLModel database models
-│   ├── schemas.py           # Pydantic request/response schemas
-│   ├── db.py                # Database initialization and seeding
-│   ├── routers/             # API endpoint modules
-│   │   ├── users.py
-│   │   ├── songs.py
-│   │   ├── quiz.py
-│   │   └── playlists.py
-│   ├── services/
-│   │   └── recommender.py   # Playlist recommendation engine
 │   ├── static/
 │   │   └── retro.css        # Retro styling
 │   └── templates/           # HTML templates
@@ -46,11 +35,11 @@ playLister/
 │       ├── quiz.html
 │       ├── generate.html
 │       └── profile.html
+├── flask_app.py            # Flask application with all routes
 ├── seed/
 │   └── house_seed.csv       # 50 real house tracks
 ├── tests/
-│   ├── test_api.py
-│   └── test_recommender.py
+│   └── test_api.py
 ├── requirements.txt
 ├── .gitignore
 └── README.md
@@ -84,12 +73,11 @@ playLister/
 
 4. **Run the application**
    ```bash
-   uvicorn app.main:app --reload
+   python flask_app.py
    ```
 
 5. **Access the application**
-   - Open your browser to `http://localhost:8000`
-   - API documentation available at `http://localhost:8000/docs`
+   - Open your browser to `http://localhost:8080`
 
 ## 📊 Database
 
@@ -107,11 +95,9 @@ The database is automatically created and seeded on first run from `seed/house_s
 
 ### Users
 - `POST /api/users` - Create or get user by name
-- `GET /api/users/{user_id}` - Get user by ID
 
 ### Songs
 - `GET /api/songs` - List songs with search/filter
-- `GET /api/songs/{song_id}` - Get specific song
 
 ### Quiz
 - `POST /api/quiz/start` - Get random songs for quiz
@@ -126,7 +112,7 @@ The database is automatically created and seeded on first run from `seed/house_s
 
 ### Example: Generate a playlist
 ```bash
-curl -X POST "http://localhost:8000/api/playlists/generate" \
+curl -X POST "http://localhost:8080/api/playlists/generate" \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": 1,
