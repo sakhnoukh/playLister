@@ -47,8 +47,11 @@
                 </div>
                 
                 <div class="form-group">
-                    <label for="seed-song">Seed song ID (optional):</label>
-                    <input type="number" id="seed-song" placeholder="Leave empty or enter song ID">
+                    <label for="seed-song">Seed song (optional):</label>
+                    <select id="seed-song">
+                        <option value="">Select a seed song (optional)</option>
+                        <!-- Songs will be loaded here -->
+                    </select>
                 </div>
                 
                 <button type="submit" class="primary">Generate Playlist</button>
@@ -83,7 +86,7 @@
         let userId = null;
         let generatedSongs = [];
         
-        function init() {
+        async function init() {
             userId = localStorage.getItem('userId');
             const userName = localStorage.getItem('userName');
             
@@ -98,6 +101,27 @@
             const now = new Date();
             const dateStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
             document.getElementById('playlist-name').value = `${userName} - ${dateStr}`;
+            
+            // Load song list for dropdown
+            try {
+                const response = await fetch('/api/songs?titles_only=true');
+                if (response.ok) {
+                    const songs = await response.json();
+                    const seedSongSelect = document.getElementById('seed-song');
+                    
+                    // Sort songs by title
+                    songs.sort((a, b) => a.title.localeCompare(b.title));
+                    
+                    songs.forEach(song => {
+                        const option = document.createElement('option');
+                        option.value = song.title;
+                        option.textContent = `${song.title} - ${song.artist}`;
+                        seedSongSelect.appendChild(option);
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading songs:', error);
+            }
         }
         
         async function generatePlaylist(event) {
@@ -105,8 +129,7 @@
             
             const count = parseInt(document.getElementById('count').value);
             const subgenre = document.getElementById('subgenre').value || null;
-            const seedSongId = document.getElementById('seed-song').value ? 
-                parseInt(document.getElementById('seed-song').value) : null;
+            const seedSongName = document.getElementById('seed-song').value || null;
             
             // Check if user ID exists
             if (!userId) {
@@ -125,7 +148,7 @@
                         user_id: parseInt(userId),
                         count: count,
                         genre: subgenre,
-                        seed_song_id: seedSongId
+                        seed_song_name: seedSongName
                     })
                 });
                 

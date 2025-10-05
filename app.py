@@ -191,34 +191,45 @@ def create_user():
 @app.route("/api/songs")
 @json_response
 def get_songs():
-    """Get songs with optional search and filtering."""
-    q = request.args.get("q", "")
-    subgenre = request.args.get("subgenre", "")
-    limit = int(request.args.get("limit", 50))
-    offset = int(request.args.get("offset", 0))
+    """Get songs with optional filtering."""
+    search = request.args.get('search')
+    genre = request.args.get('genre')
+    titles_only = request.args.get('titles_only') == 'true'
+    
+    if titles_only:
+        query = "SELECT id, title, artist FROM songs ORDER BY title"
+        db = get_db()
+        cursor = db.cursor()
+        cursor.row_factory = dict_factory
+        cursor.execute(query)
+        songs = cursor.fetchall()
+        return songs
+    
+    query = "SELECT * FROM songs"
+    params = []
+    
+    # Build where clause
+    where_clauses = []
+    
+    if search:
+        where_clauses.append("(title LIKE ? OR artist LIKE ?)")
+        params.extend([f'%{search}%', f'%{search}%'])
+    
+    if genre:
+        where_clauses.append("subgenre = ?")
+        params.append(genre)
+    
+    if where_clauses:
+        query += " WHERE " + " AND ".join(where_clauses)
     
     db = get_db()
     cursor = db.cursor()
     cursor.row_factory = dict_factory
-    
-    query = "SELECT * FROM songs WHERE 1=1"
-    params = []
-    
-    if q:
-        query += " AND (title LIKE ? OR artist LIKE ?)"
-        params.extend([f"%{q}%", f"%{q}%"])
-    
-    if subgenre:
-        query += " AND subgenre = ?"
-        params.append(subgenre)
-    
-    query += " LIMIT ? OFFSET ?"
-    params.extend([limit, offset])
-    
     cursor.execute(query, params)
     songs = cursor.fetchall()
     
     return songs
+
 
 @app.route("/api/quiz/start", methods=["POST"])
 @json_response
@@ -406,7 +417,7 @@ def generate_playlist():
     user_id = data.get("user_id")
     count = data.get("count", 20)
     genre = data.get("genre")
-    seed_song_id = data.get("seed_song_id")
+    seed_song_name = data.get("seed_song_name")
     
     if not user_id:
         return {"error": "user_id is required"}, 400
@@ -426,21 +437,37 @@ def generate_playlist():
     feedbacks = cursor.fetchall()
     
     if not feedbacks:
-        # No feedback yet - return random songs
-        query = "SELECT * FROM songs"
-        params = []
+        # No feedback yet - return a mix of genre-specific and random songs
+        preferred_songs = []
         
+        # First try to get songs from the specified genre
         if genre:
-            query += " WHERE subgenre = ?"
-            params.append(genre)
+            cursor.execute("SELECT * FROM songs WHERE subgenre = ?", (genre,))
+            preferred_songs = cursor.fetchall()
         
-        cursor.execute(query, params)
+        # Get all songs
+        cursor.execute("SELECT * FROM songs")
         all_songs = cursor.fetchall()
         
-        if len(all_songs) <= count:
-            return all_songs
+        # If we have enough songs in the preferred genre
+        if genre and len(preferred_songs) >= count:
+            return random.sample(preferred_songs, count)
         
-        return random.sample(all_songs, count)
+        # Otherwise create a mixed playlist
+        result = []
+        
+        # First add all songs from the preferred genre
+        if genre:
+            result.extend(preferred_songs)
+        
+        # Then add random songs that aren't already in the result
+        remaining_songs = [song for song in all_songs if not any(song["id"] == s["id"] for s in result)]
+        needed = count - len(result)
+        
+        if needed > 0 and remaining_songs:
+            result.extend(random.sample(remaining_songs, min(needed, len(remaining_songs))))
+        
+        return result
     
     # Build taste profile
     liked_songs = []
@@ -459,29 +486,42 @@ def generate_playlist():
     
     # Get seed song if specified
     seed_song = None
-    if seed_song_id:
-        cursor.execute("SELECT * FROM songs WHERE id = ?", (seed_song_id,))
+    if seed_song_name:
+        # Use LIKE for a more flexible search (case-insensitive partial match)
+        cursor.execute("SELECT * FROM songs WHERE title LIKE ? LIMIT 1", (f'%{seed_song_name}%',))
         seed_song = cursor.fetchone()
         if not seed_song:
-            return {"error": "Seed song not found"}, 404
+            return {"error": f"No song found matching '{seed_song_name}'"}, 404
     
-    # Get all candidate songs
-    query = "SELECT * FROM songs"
-    params = []
-    
+    # First, get songs from the specified genre if any
+    preferred_songs = []
     if genre:
-        query += " WHERE subgenre = ?"
-        params.append(genre)
+        query = "SELECT * FROM songs WHERE subgenre = ?"
+        cursor.execute(query, [genre])
+        preferred_songs = cursor.fetchall()
     
-    cursor.execute(query, params)
+    # Get all songs for backup/filling
+    cursor.execute("SELECT * FROM songs")
     all_songs = cursor.fetchall()
     
     # Score each song
     scored_songs = []
     
+    # First, process songs from the preferred genre if specified
+    if genre and preferred_songs:
+        for song in preferred_songs:
+            if song["id"] in disliked_song_ids:
+                continue
+            
+            # Give a genre bonus to preferred genre songs
+            score = _score_song(song, liked_songs, disliked_songs, seed_song)
+            score += 5.0  # Significant bonus for matching the requested genre
+            scored_songs.append((song, score))
+    
+    # Then process all songs to fill the playlist if needed
     for song in all_songs:
-        # Skip songs user disliked
-        if song["id"] in disliked_song_ids:
+        # Skip songs that are already scored or disliked
+        if song["id"] in disliked_song_ids or any(s["id"] == song["id"] for s, _ in scored_songs):
             continue
         
         score = _score_song(song, liked_songs, disliked_songs, seed_song)
@@ -607,10 +647,18 @@ def get_playlist(playlist_id):
         """,
         (playlist_id,)
     )
-    songs = cursor.fetchall()
+    songs_data = cursor.fetchall()
     
-    # Format response
-    playlist["songs"] = songs
+    # Format response - structure songs as the frontend expects
+    formatted_songs = []
+    for song_data in songs_data:
+        position = song_data.pop('position')
+        formatted_songs.append({
+            'position': position,
+            'song': song_data
+        })
+    
+    playlist["songs"] = formatted_songs
     
     return playlist
 
@@ -661,4 +709,11 @@ def profile_page():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    import os
+    debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
+    host = os.getenv('FLASK_HOST', '127.0.0.1')
+    try:
+        port = int(os.getenv('FLASK_PORT', '5050'))
+    except ValueError as e:
+        raise ValueError(f"FLASK_PORT must be an integer, got: {os.getenv('FLASK_PORT')}") from e
+    app.run(debug=debug_mode, host=host, port=port)
