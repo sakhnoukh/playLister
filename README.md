@@ -1,6 +1,9 @@
 # 🎵 PlayLister - House Music Playlist Generator
 
-A retro-styled music playlist generator focused on house music, built with Flask and featuring a taste quiz system that learns your preferences to create personalized playlists. The application has a 90s-inspired retro UI design.
+[![CI](https://github.com/sakhnoukh/playLister/actions/workflows/ci.yml/badge.svg)](https://github.com/sakhnoukh/playLister/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen)](https://github.com/sakhnoukh/playLister)
+
+A production-ready, retro-styled music playlist generator focused on house music, built with Flask and featuring a taste quiz system that learns your preferences to create personalized playlists. The application has a 90s-inspired retro UI design.
 
 ## ✨ Features
 
@@ -15,34 +18,64 @@ A retro-styled music playlist generator focused on house music, built with Flask
 - **Playlist Management**: Save, view, and delete your custom playlists
 - **Retro UI**: 90s dot-com era aesthetic with pixel fonts and classic styling
 
+### 🚀 DevOps Features (Assignment 2)
+
+- **Health & Metrics**: `/health` endpoint with DB checks and `/metrics` endpoint for Prometheus
+- **Testing**: Comprehensive test suite with 89% coverage (≥70% enforced in CI)
+- **CI/CD Pipeline**: Automated linting, testing, Docker builds, and deployment via GitHub Actions
+- **Containerization**: Docker + docker-compose with Prometheus & Grafana monitoring stack
+- **Code Quality**: App factory pattern, blueprints, services layer, configurable via environment variables
+
 ## 🛠 Tech Stack
 
-- **Backend**: Flask (Python)
+- **Backend**: Flask (Python) with app factory pattern
 - **Database**: SQLite with native Python connections
 - **Frontend**: Vanilla HTML/CSS/JavaScript with retro styling
-- **Server**: Flask development server
-- **Testing**: Pytest
+- **Server**: Gunicorn (production), Flask dev server (development)
+- **Testing**: Pytest with pytest-cov (89% coverage)
+- **Monitoring**: Prometheus + Grafana
+- **CI/CD**: GitHub Actions
+- **Containerization**: Docker + Docker Compose
+- **Code Quality**: Black, Ruff, MyPy
 
 ## 📦 Project Structure
 
 ```
 playLister/
 ├── app/
-│   ├── static/
-│   │   └── retro.css        # Retro styling
-│   └── templates/           # HTML templates
-│       ├── home.html
-│       ├── quiz.html
-│       ├── generate.html
-│       └── profile.html
-├── app.py                 # Flask application with all routes
-├── run.sh                 # Startup script
+│   ├── __init__.py         # App factory
+│   ├── config.py           # Configuration management
+│   ├── database.py         # Database utilities
+│   ├── routes/             # Blueprint routes
+│   │   ├── health.py       # Health check endpoint
+│   │   ├── metrics.py      # Prometheus metrics
+│   │   ├── users.py        # User routes
+│   │   ├── songs.py        # Song routes
+│   │   ├── quiz.py         # Quiz routes
+│   │   ├── playlists.py    # Playlist routes
+│   │   └── frontend.py     # HTML template routes
+│   ├── services/           # Business logic layer
+│   │   ├── user_service.py
+│   │   ├── song_service.py
+│   │   ├── quiz_service.py
+│   │   ├── playlist_service.py
+│   │   └── recommender.py  # Recommendation engine
+│   ├── static/             # CSS and assets
+│   └── templates/          # HTML templates
+├── tests/                  # Test suite (89% coverage)
+├── docker/                 # Docker configuration
+│   ├── Dockerfile
+│   ├── docker-compose.yml
+│   ├── prometheus.yml
+│   └── grafana-*/          # Grafana config
+├── .github/workflows/      # CI/CD pipeline
+│   └── ci.yml
 ├── seed/
-│   └── house_tracks.csv       # 97 real house tracks
-├── report/
-│   └── report.md           # Project report
-├── requirements.txt
-├── .gitignore
+│   └── house_tracks.csv    # 97 real house tracks
+├── requirements.txt        # Production dependencies
+├── requirements-dev.txt    # Development dependencies
+├── pyproject.toml          # Tool configuration
+├── REPORT.md               # DevOps assignment report
 └── README.md
 ```
 
@@ -50,46 +83,48 @@ playLister/
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- pip or uv package manager
+- Python 3.11 or higher
+- Docker & Docker Compose (for containerized deployment)
+- pip package manager
 
 ### Installation & Running
 
-**Method 1: Using the run script**
+#### Development Mode
 
 ```bash
+# Clone repository
 git clone https://github.com/sakhnoukh/playLister.git
 cd playLister
-chmod +x run.sh
-./run.sh
+
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt -r requirements-dev.txt
+
+# Initialize database (automatic on first run)
+python3 -c "from app.database import init_db; init_db()"
+
+# Run development server
+export FLASK_ENV=development
+flask --app "app:create_app()" run --host=0.0.0.0 --port=8000
+
+# Access at http://localhost:8000
 ```
 
-**Method 2: Manual setup**
+#### Production Mode with Docker
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/sakhnoukh/playLister.git
-   cd playLister
-   ```
+```bash
+# Build and run with monitoring stack
+cd docker
+docker-compose up --build
 
-2. **Create and activate virtual environment**
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-3. **Install dependencies**
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. **Run the application**
-   ```bash
-   python app.py
-   ```
-
-5. **Access the application**
-   - Open your browser to `http://localhost:8080`
+# Access services:
+# - App: http://localhost:8000
+# - Prometheus: http://localhost:9090
+# - Grafana: http://localhost:3000 (admin/admin)
+```
 
 ## 📊 Database
 
@@ -104,6 +139,10 @@ The application uses SQLite with the following schema:
 The database is automatically created and seeded on first run from `seed/house_seed.csv`.
 
 ## 🎯 API Endpoints
+
+### Health & Monitoring
+- `GET /health` - Health check with DB status
+- `GET /metrics` - Prometheus metrics
 
 ### Users
 - `POST /api/users` - Create or get user by name
@@ -136,12 +175,28 @@ curl -X POST "http://localhost:8080/api/playlists/generate" \
 ## 🧪 Running Tests
 
 ```bash
+# Run all tests
 pytest -v
+
+# Run with coverage (≥70% enforced)
+pytest --cov=app --cov-report=term-missing --cov-fail-under=70
+
+# Generate HTML coverage report
+pytest --cov=app --cov-report=html
+# Open htmlcov/index.html in browser
 ```
 
-Run with coverage:
+## 🔍 Code Quality
+
 ```bash
-pytest --cov=app tests/
+# Format code
+black app tests
+
+# Lint code
+ruff check app tests
+
+# Type checking (optional)
+mypy app
 ```
 
 ## 🎨 Recommendation Algorithm
@@ -157,17 +212,46 @@ The playlist generator uses a weighted scoring system:
 
 Songs are ranked by score and top N are returned, excluding any previously disliked tracks.
 
-## 📝 Code Quality
+## 📊 Monitoring
 
-Format code:
-```bash
-black app/ tests/
-```
+When running with docker-compose, you get a full monitoring stack:
 
-Lint code:
-```bash
-ruff check app/ tests/
-```
+- **Prometheus** (http://localhost:9090): Scrapes `/metrics` endpoint every 10s
+- **Grafana** (http://localhost:3000): Visualize metrics with pre-configured dashboards
+  - Default login: `admin` / `admin`
+  - Prometheus datasource pre-configured
+
+### Available Metrics
+
+- `playlister_http_requests_total` - Total HTTP requests by endpoint, method, status
+- `playlister_http_request_latency_seconds` - Request latency histogram
+- `playlister_playlist_generate_total` - Playlist generation counter with success/genre labels
+- Standard Python/Flask metrics (memory, CPU, etc.)
+
+## 🚢 CI/CD Pipeline
+
+GitHub Actions workflow (`.github/workflows/ci.yml`):
+
+1. **Lint & Format**: Runs ruff and black on every push
+2. **Test**: Executes pytest with coverage gate (≥70%)
+3. **Build & Push**: Builds Docker image and pushes to Azure Container Registry
+4. **Deploy**: Automatically deploys to Azure App Service on `main` branch
+
+### Azure Deployment
+
+The application is configured for deployment to Azure:
+- **Azure Container Registry**: `playlisteracr.azurecr.io`
+- **App Service**: `playlister-webapp`
+- **Resource Group**: `BCSAI2025-DEVOPS-STUDENTS-B`
+
+**📖 See [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md) for complete setup instructions**
+
+### Required GitHub Secrets
+
+Add these secrets in GitHub Settings → Secrets → Actions:
+- `ACR_USERNAME` - Azure Container Registry username
+- `ACR_PASSWORD` - Azure Container Registry password
+- `AZURE_CREDENTIALS` - Azure service principal credentials (JSON)
 
 ## 🔮 Future Enhancements
 
@@ -176,8 +260,8 @@ ruff check app/ tests/
 - Advanced collaborative filtering
 - Export playlists to M3U format
 - Spotify/Apple Music integration
-- Dockerization for easy deployment
-- CI/CD pipeline with GitHub Actions
+- Horizontal scaling with Redis session store
+- PostgreSQL for production database
 
 ## 📄 License
 
