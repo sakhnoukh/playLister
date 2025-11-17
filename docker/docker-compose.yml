@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      - APP_ENV=production
+      - DATABASE_URL=sqlite:///playlist.db
+      - APP_VERSION=1.0.0
+    ports:
+      - "8000:8000"
+    volumes:
+      - app-data:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    networks:
+      - playlister-network
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    networks:
+      - playlister-network
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana-dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana-datasources:/etc/grafana/provisioning/datasources:ro
+    networks:
+      - playlister-network
+    depends_on:
+      - prometheus
+
+volumes:
+  app-data:
+  prometheus-data:
+  grafana-data:
+
+networks:
+  playlister-network:
+    driver: bridge

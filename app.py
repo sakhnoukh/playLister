@@ -709,7 +709,6 @@ def profile_page():
 
 if __name__ == "__main__":
     init_db()
-    import os
     debug_mode = os.getenv('FLASK_DEBUG', 'False').lower() == 'true'
     host = os.getenv('FLASK_HOST', '127.0.0.1')
     try:
